@@ -7,12 +7,13 @@ import mongoConnect from './Config/mongoConnect.js';
 import codeRoutes from './Routes/code.js';
 import userRoutes from './Routes/userRoutes.js';
 import interviewRoutes from './Routes/interviewRoutes.js';
+import executeRoutes from './routes/execute.js';
 import { sendNotificationEmail } from './utils/sendEmail.js';
 
 
 
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
 
 // In server/server.js, near your other routes:
 
@@ -43,6 +44,7 @@ app.use(express.json());
 app.use(codeRoutes);
 app.use(userRoutes);
 app.use(interviewRoutes)
+app.use('/api/execute', executeRoutes);
 
 
 
@@ -167,16 +169,32 @@ app.post('/api/ai/assistance', aiRateLimit, async (req, res) => {
 app.get('/api/ai/health', (req, res) => {
   const isEnabled = process.env.AI_ENABLED === 'true' && !!process.env.GITHUB_TOKEN;
   
+  const aiEnabledFlag = process.env.AI_ENABLED === 'true';
+  const hasToken = !!process.env.GITHUB_TOKEN;
+  let message = null;
+  if (!aiEnabledFlag) message = 'Set AI_ENABLED=true in server/.env';
+  else if (!hasToken) message = 'Set GITHUB_TOKEN in server/.env (GitHub Models API token)';
+
   res.json({
     success: true,
     aiEnabled: isEnabled,
-    hasToken: !!process.env.GITHUB_TOKEN,
-    availableModels: Object.keys(GITHUB_MODELS).length
+    aiEnabledFlag,
+    hasToken,
+    availableModels: Object.keys(GITHUB_MODELS).length,
+    message,
   });
 });
 
-// Add this to your existing server startup log
-console.log(`🤖 AI Assistant: ${process.env.AI_ENABLED === 'true' ? 'Enabled' : 'Disabled'}`);
+const aiReady =
+  process.env.AI_ENABLED === 'true' && !!process.env.GITHUB_TOKEN;
+console.log(
+  `🤖 AI Assistant: ${aiReady ? 'Enabled' : 'Disabled'}` +
+    (process.env.AI_ENABLED === 'true' && !process.env.GITHUB_TOKEN
+      ? ' (GITHUB_TOKEN missing — add it to server/.env and restart)'
+      : process.env.AI_ENABLED !== 'true'
+        ? ' (set AI_ENABLED=true in server/.env)'
+        : '')
+);
 
 
 app.post('/api/github-ai', async (req, res) => {
@@ -227,6 +245,16 @@ app.get("/email", (req, res) => {
 
 
 mongoConnect()//monogDB se connect
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(` app listening on port ${port}`)
-})
+});
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `❌ Port ${port} is already in use. Stop the other process (e.g. taskkill /F /IM node.exe or close old terminals), then restart.`
+    );
+  } else {
+    console.error('❌ Server failed to start:', err.message);
+  }
+  process.exit(1);
+});

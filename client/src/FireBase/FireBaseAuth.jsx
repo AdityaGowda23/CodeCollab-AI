@@ -21,7 +21,7 @@ const FireBaseContext = createContext(null);
 const signinByGoogle = async () => {
   try {
     const res = await signInWithPopup(auth, googleProvider);
-    const res1=await getSetUser(res.user.uid,res.user.email,res.user.displayName || " ");
+    const res1=await getSetUser(res.user.uid, res.user.displayName || "", res.user.email)
     return {
       userId: res.user.uid,
       email: res.user.email,
@@ -41,7 +41,8 @@ const signinByGoogle = async () => {
 const signup = async (email, password) => {
   try {
     const res = await createUserWithEmailAndPassword(auth, email, password);
-    const res1=await getSetUser(res.user.uid,res.user.email,res.user.displayName || " ");
+      const res1=await getSetUser(res.user.uid, res.user.displayName || "", res.user.email)
+    
     return {
       userId: res.user.uid,
       email: res.user.email,

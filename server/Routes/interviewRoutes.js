@@ -28,7 +28,6 @@ interviewRoutes.post("/interview-create", async (req, res) => {
       ownerId: payload.ownerId,
       title: payload.title,
       scheduledAt,
-      candidateId: payload.candidateId || null,
       candidateEmail: payload.candidateEmail,
       invitedInterviewers: Array.isArray(payload.invitedInterviewers) ? payload.invitedInterviewers : [],
       dsaQuestions: Array.isArray(payload.dsaQuestions) ? payload.dsaQuestions : [],
@@ -36,6 +35,11 @@ interviewRoutes.post("/interview-create", async (req, res) => {
       codeRoomId,
       whiteBoardRoom,
     };
+
+    // Only set candidateId when known (candidate may not have signed up yet)
+    if (payload.candidateId) {
+      doc.candidateId = payload.candidateId;
+    }
 
     const created = await InterviewSpace.create(doc);
 

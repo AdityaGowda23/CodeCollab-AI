@@ -12,13 +12,26 @@ import {
 import { WebrtcProvider } from "y-webrtc";
 import * as Y from "yjs";
 
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 
 const LIVEBLOCKS_PUBLIC_KEY = "pk_dev_HxqY-jDyORfYfSHSzxwyJbzZCAZQrHmnnT91EKWngA_jX0BkgOQJvknHaMX_7DeO";
-const GEMINI_API_KEY = "AIzaSyDbdAAQG7UBtiKJy591WYy2fi9ByKMJwk4";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
+function resolveInterviewPrompt(searchParams, pathPrompt) {
+  const fromQuery = searchParams.get("prompt");
+  const raw = fromQuery ?? pathPrompt ?? "";
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
 
 const CodeEditor = () => {
-  const { roomId, initialPrompt } = useParams();
+  const { roomId, initialPrompt: pathPrompt } = useParams();
+  const [searchParams] = useSearchParams();
+  const initialPrompt = resolveInterviewPrompt(searchParams, pathPrompt);
 
   const templates = {
     javascript: `function solution() {
@@ -102,7 +115,8 @@ int main() {
 
     useEffect(() => {
       const params = new URLSearchParams(window.location.search);
-      setIsInterviewer(params.get("role") === "interviewer");
+      const role = params.get("role");
+      setIsInterviewer(role === "interviewer" || role !== "candidate");
     }, []);
 
     const normalizeFieldToString = (v) => {
@@ -140,34 +154,20 @@ int main() {
         setError(null);
 
         try {
-          const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    parts: [
-                      {
-                        text: `Generate a Data Structures and Algorithms coding problem based on the following prompt:\n\n${prompt}\n\nReturn the result as JSON exactly in this format:\n{ "title": "", "description": "", "requirements": [""], "sampleInput": "", "sampleOutput": "" }\n\nIMPORTANT: ensure all fields are either strings or arrays of strings. If you would return an object, convert it to a string.`,
-                      },
-                    ],
-                  },
-                ],
-              }),
-            }
-          );
+          const resp = await fetch(`${API_BASE_URL}/api/interview/generate-question`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt }),
+          });
 
-          const data = await resp.json();
-          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const data = await resp.json().catch(() => ({}));
 
-          if (!content) throw new Error("No content returned from Gemini");
+          if (!resp.ok || !data?.success) {
+            throw new Error(data?.error || `Request failed (${resp.status})`);
+          }
 
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) throw new Error("Gemini response did not contain JSON");
-
-          const parsed = JSON.parse(jsonMatch[0]);
+          const parsed = data.problem;
+          if (!parsed) throw new Error("Server returned no problem data");
 
           const newProblem = {
             title: normalizeFieldToString(parsed.title || "Untitled problem"),
@@ -211,59 +211,41 @@ int main() {
       setIsAnalyzing(true);
       setAnalysisResult(null);
       setError(null);
-      
+
       try {
-        const prompt = `
-        Analyze this ${language} code for technical interviews. Provide ONLY a JSON response with these fields:
-        {
-          "timeComplexity": "O(n) notation",
-          "spaceComplexity": "O(n) notation", 
-          "efficiencyScore": 1-10,
-          "comment": "Brief feedback"
+        const ps = [
+          problem?.title,
+          problem?.description,
+          ...(Array.isArray(problem?.requirements) ? problem.requirements : []),
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        const resp = await fetch(`${API_BASE_URL}/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ps: ps || "Coding interview problem",
+            code: code || "",
+            language,
+          }),
+        });
+
+        const data = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || !data?.success) {
+          throw new Error(data?.error || `Analysis failed (${resp.status})`);
         }
-        Code to analyze:
-        ${code || ''}
-        `;
 
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: prompt },
-                  ],
-                },
-              ],
-            }),
-          }
-        );
-
-        const data = await resp.json();
-        const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!content) throw new Error("No analysis returned");
-
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Invalid analysis format");
-
-        const parsed = JSON.parse(jsonMatch[0]);
-
-        const result = {
-          timeComplexity: parsed.timeComplexity || "Unknown",
-          spaceComplexity: parsed.spaceComplexity || "Unknown",
-          efficiencyScore: Math.min(10, Math.max(1, 
-            typeof parsed.efficiencyScore === 'number' 
-              ? parsed.efficiencyScore 
-              : 5
-          )),
-          comment: parsed.comment || "No specific feedback provided",
-        };
-
-        setAnalysisResult(result);
+        setAnalysisResult({
+          timeComplexity: data.timeComplexity || "Unknown",
+          spaceComplexity: data.spaceComplexity || "Unknown",
+          efficiencyScore: Math.min(
+            10,
+            Math.max(1, typeof data.efficiencyScore === "number" ? data.efficiencyScore : 5)
+          ),
+          comment: data.comment || "No specific feedback provided",
+        });
       } catch (err) {
         setError(`Analysis failed: ${err.message}`);
       } finally {
@@ -288,8 +270,16 @@ int main() {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h1 className="text-2xl font-bold text-white">
-                    {problem?.title || "Loading problem..."}
+                    {isGeneratingQuestion
+                      ? "Generating question..."
+                      : problem?.title || "Loading problem..."}
                   </h1>
+
+                  {error && (
+                    <div className="mb-4 text-red-400 bg-red-900/50 p-3 rounded border border-red-800 text-sm">
+                      {error}
+                    </div>
+                  )}
 
                   {isInterviewer && (
                     <motion.button

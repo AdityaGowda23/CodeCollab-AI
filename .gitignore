@@ -2,7 +2,7 @@
 node_modules/
 client/node_modules/
 server/node_modules/
-server2/node_modules/
+server2.js/node_modules/
 
 # Logs
 npm-debug.log*
@@ -16,8 +16,8 @@ client/dist/
 client/build/
 server/dist/
 server/build/
-server2/dist/
-server2/build/
+server2.js/dist/
+server2.js/build/
 
 # Runtime files
 *.log
@@ -30,6 +30,8 @@ pids
 .env.*          # .env.development, .env.production, etc.
 client/.env
 server/.env
+server2.js/.env
+
 
 # OS generated files
 .DS_Store

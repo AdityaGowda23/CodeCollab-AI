@@ -8,6 +8,7 @@ export default function useAgenticAI() {
   const [currentModel, setCurrentModel] = useState('gpt-4.1'); // Default to GPT-4.1
   const [availableModels, setAvailableModels] = useState({});
   const [isEnabled, setIsEnabled] = useState(false);
+  const [healthInfo, setHealthInfo] = useState(null);
   const [usageStats, setUsageStats] = useState({
     totalRequests: 0,
     totalTokens: 0,
@@ -17,25 +18,32 @@ export default function useAgenticAI() {
   const abortControllerRef = useRef(null);
   const conversationIdRef = useRef(0);
 
-  // Check if AI service is available on mount
-  useEffect(() => {
-    const checkAIService = async () => {
-      try {
-        const health = await githubAI.checkHealth();
-        setIsEnabled(health.aiEnabled);
-        
-        if (health.aiEnabled) {
-          const models = await githubAI.getAvailableModels();
-          setAvailableModels(models.models || {});
-        }
-      } catch (error) {
-        console.error('AI service check failed:', error);
-        setIsEnabled(false);
-      }
-    };
+  const checkAIService = useCallback(async () => {
+    try {
+      const health = await githubAI.checkHealth();
+      setHealthInfo(health);
+      setIsEnabled(health.aiEnabled);
 
-    checkAIService();
+      if (health.aiEnabled) {
+        const models = await githubAI.getAvailableModels();
+        setAvailableModels(models.models || {});
+      }
+      return health;
+    } catch (error) {
+      console.error('AI service check failed:', error);
+      setHealthInfo({
+        aiEnabled: false,
+        message:
+          'Cannot reach API server. Start it with: cd server && npm run dev (port 3000)',
+      });
+      setIsEnabled(false);
+      return null;
+    }
   }, []);
+
+  useEffect(() => {
+    checkAIService();
+  }, [checkAIService]);
 
   // Add conversation to history
   const addConversation = useCallback((conversation) => {
@@ -200,8 +208,10 @@ export default function useAgenticAI() {
     availableModels,
     usageStats,
     isEnabled,
+    healthInfo,
     
     // Actions
+    checkAIService,
     getAIAssistance,
     cancelRequest,
     clearHistory,

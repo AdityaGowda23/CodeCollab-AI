@@ -84,88 +84,84 @@ Test cases:
 
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !roomId || !userId || !userRole) return;
 
-    socket.on('connect', () => {
-      console.log('🔌 Connected to server, joining room...');
+    const joinRoom = () => {
+      console.log('Connected to server, joining room...');
       socket.emit('join-room', roomId, userId, userRole);
-    });
+    };
 
-    socket.on('user-connected', ({ userId: newUserId, userRole: newUserRole }) => {
-      console.log('👤 User connected:', newUserId, newUserRole);
-      
-      // Update participants list
-      setParticipants(prev => {
-        const filtered = prev.filter(p => p.userId !== newUserId);
-        const updated = [...filtered, { userId: newUserId, userRole: newUserRole }];
-        console.log('👥 Updated participants:', updated);
-        return updated;
+    const syncParticipantsFromServer = () => {
+      socket.emit('get-participants', (response) => {
+        if (!response?.success) return;
+
+        const existingParticipants = response.participants.filter(
+          (p) => p.userId !== userId
+        );
+        setParticipants(existingParticipants);
+
+        if (existingParticipants.length >= 1) {
+          const peer = existingParticipants[0];
+          setOtherUserId((current) => current ?? peer.userId);
+        }
+      });
+    };
+
+    const onConnect = () => {
+      joinRoom();
+    };
+
+    const onUserConnected = ({ userId: newUserId, userRole: newUserRole }) => {
+      if (newUserId === userId) return;
+
+      setParticipants((prev) => {
+        const filtered = prev.filter((p) => p.userId !== newUserId);
+        return [...filtered, { userId: newUserId, userRole: newUserRole }];
       });
 
-      // Update all participants map
-      setAllParticipants(prev => {
+      setAllParticipants((prev) => {
         const updated = new Map(prev);
         updated.set(newUserId, { userId: newUserId, userRole: newUserRole });
         return updated;
       });
 
-      // Set remote user for WebRTC signaling (only if different from current user)
-      if (newUserId !== userId && !otherUserId) {
-        console.log('🎯 Setting remote user for WebRTC:', newUserId);
-        setOtherUserId(newUserId);
-      }
-    });
+      setOtherUserId((current) => current ?? newUserId);
+    };
 
-    socket.on('user-disconnected', (disconnectedUserId) => {
-      console.log('👋 User disconnected:', disconnectedUserId);
-      
-      setParticipants(prev => {
-        const updated = prev.filter(p => p.userId !== disconnectedUserId);
-        console.log('👥 Updated participants after disconnect:', updated);
-        return updated;
-      });
+    const onUserDisconnected = (disconnectedUserId) => {
+      setParticipants((prev) =>
+        prev.filter((p) => p.userId !== disconnectedUserId)
+      );
 
-      // Update all participants map
-      setAllParticipants(prev => {
+      setAllParticipants((prev) => {
         const updated = new Map(prev);
         updated.delete(disconnectedUserId);
         return updated;
       });
-      
-      if (disconnectedUserId === otherUserId) {
-        console.log('🎯 Remote user disconnected, clearing...');
-        setOtherUserId(null);
-      }
-    });
 
-    // Handle room join confirmation and existing participants
-    socket.on('existing-messages', (messages) => {
-      console.log('📜 Received existing messages:', messages.length);
-      
-      // Request current participants when we join
-      socket.emit('get-participants', (response) => {
-        if (response.success) {
-          console.log('👥 Existing participants:', response.participants);
-          
-          // Set up existing participants
-          const existingParticipants = response.participants.filter(p => p.userId !== userId);
-          setParticipants(existingParticipants);
-          
-          // Set remote user if there's exactly one other participant
-          if (existingParticipants.length === 1) {
-            const otherUser = existingParticipants[0];
-            console.log('🎯 Setting remote user from existing participants:', otherUser.userId);
-            setOtherUserId(otherUser.userId);
-          }
-        }
-      });
-    });
+      setOtherUserId((current) =>
+        current === disconnectedUserId ? null : current
+      );
+    };
+
+    const onExistingMessages = () => {
+      syncParticipantsFromServer();
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('user-connected', onUserConnected);
+    socket.on('user-disconnected', onUserDisconnected);
+    socket.on('existing-messages', onExistingMessages);
+
+    if (socket.connected) {
+      joinRoom();
+    }
 
     return () => {
-      socket.off('connect');
-      socket.off('user-connected');
-      socket.off('user-disconnected');
-      socket.off('existing-messages');
+      socket.off('connect', onConnect);
+      socket.off('user-connected', onUserConnected);
+      socket.off('user-disconnected', onUserDisconnected);
+      socket.off('existing-messages', onExistingMessages);
     };
   }, [socket, roomId, userId, userRole]);
 

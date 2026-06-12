@@ -3,13 +3,21 @@ dotenv.config();
 import mongoose from "mongoose";
 
 const mongoConnect = async () => {
-  try {
-    const url="mongodb+srv://NeedCode:ujWLY3ePFKbfLEJY@cluster0.rndue1t.mongodb.net/NeedForCode";
-    const conn = await mongoose.connect(url);
+  const url = process.env.MONGODB_URI;
 
+  if (!url) {
+    console.warn(
+      "MongoDB: MONGODB_URI is not set — skipping database connection. " +
+        "User auth and interview features will not persist data."
+    );
+    return;
+  }
+
+  try {
+    const conn = await mongoose.connect(url);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (err) {
-    console.error(`Error: ${err.message}`);
+    console.error(`MongoDB connection error: ${err.message}`);
   }
 };
 

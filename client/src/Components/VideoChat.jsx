@@ -87,8 +87,7 @@ export default function VideoChat({
 
   const displayInfo = getDisplayInfo();
   
-  // More explicit condition for showing remote video
-  const shouldShowRemoteVideo = remoteStream && isCallActive && otherUserId;
+  const shouldShowRemoteVideo = !!remoteStream && !!otherUserId;
 
   console.log('🎬 VideoChat render:', {
     hasRemoteStream: !!remoteStream,
@@ -101,13 +100,15 @@ export default function VideoChat({
 
   return (
     <div className="flex flex-col h-full bg-gray-900 rounded-lg overflow-hidden">
-      {/* Hidden local video for track management */}
+      {/* Local preview (picture-in-picture) */}
       <video
         ref={localVideoRef}
         autoPlay
         playsInline
         muted
-        className="hidden"
+        className={`absolute bottom-24 right-4 w-40 h-28 object-cover rounded-lg border-2 border-gray-600 shadow-lg z-10 bg-gray-800 ${
+          localStream ? '' : 'hidden'
+        }`}
       />
 
       {/* Main Video Display Area */}

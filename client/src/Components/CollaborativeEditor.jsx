@@ -522,8 +522,7 @@ export function CollaborativeEditor({ onShareClick, onCodeChange }) {
   const chatRef = useRef(null);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
 
-  // Hard-coded Piston endpoint (public instance)
-  const PISTON_ENDPOINT = "https://emkc.org/api/v2/piston/execute";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
   const boilerplateCodes = {
     javascript:
@@ -675,34 +674,23 @@ export function CollaborativeEditor({ onShareClick, onCodeChange }) {
     }
   };
 
-  // Execute via Piston (public endpoint) for non-JS languages
+  // Execute non-JS languages via server Piston proxy
   const executeOnPiston = async (lang, code) => {
     try {
-      const filename = lang === "java" ? "Main.java" : lang === "cpp" ? "main.cpp" : "main";
-      const payload = {
-        language: lang,
-        version: "*",
-        files: [{ name: filename, content: code }]
-      };
-
-      const res = await fetch(PISTON_ENDPOINT, {
+      const res = await fetch(`${API_BASE_URL}/api/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ language: lang, code, version: "*" }),
       });
 
-      if (!res.ok) {
-        let errText = `Piston request failed: ${res.status} ${res.statusText}`;
-        try {
-          const j = await res.json();
-          if (j?.message) errText += ` — ${j.message}`;
-        } catch (e) {
-          // ignore
-        }
-        return { success: false, output: errText };
-      }
+      const data = await res.json().catch(() => ({}));
 
-      const data = await res.json();
+      if (!res.ok) {
+        return {
+          success: false,
+          output: data.error || `Execution failed: ${res.status} ${res.statusText}`,
+        };
+      }
 
       if (data?.run) {
         return { success: true, output: data.run.output || data.run.stdout || data.run.stderr || "No run output", raw: data };

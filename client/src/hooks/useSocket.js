@@ -7,10 +7,9 @@ export default function useSocket(serverUrl ) {
 
   useEffect(() => {
     const newSocket = io(serverUrl, {
-      autoConnect: true, // Changed from false
+      autoConnect: true,
       reconnectionAttempts: 5,
-      withCredentials: true,
-      transports: ['websocket']
+      transports: ["websocket", "polling"],
     });
 
     setSocket(newSocket);

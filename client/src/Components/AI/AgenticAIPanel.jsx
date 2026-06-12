@@ -47,6 +47,8 @@ const AgenticAIPanel = ({
     availableModels,
     usageStats,
     isEnabled,
+    healthInfo,
+    checkAIService,
     getAIAssistance,
     cancelRequest,
     clearHistory,
@@ -180,15 +182,36 @@ const AgenticAIPanel = ({
                 <Bot className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold mb-2">AI Assistant Unavailable</h3>
-              <p className="text-gray-600 mb-4">
-                The AI assistant is currently not available. Please check your server configuration.
+              <p className="text-gray-600 mb-2 text-sm">
+                {healthInfo?.message ||
+                  (healthInfo?.hasToken === false
+                    ? 'GITHUB_TOKEN is missing in server/.env. Add your GitHub Models token and restart the server.'
+                    : healthInfo?.aiEnabledFlag === false
+                      ? 'Set AI_ENABLED=true in server/.env and restart the server.'
+                      : healthInfo?.aiEnabled === false
+                        ? 'API is reachable but AI is disabled. Check AI_ENABLED and GITHUB_TOKEN in server/.env, then restart.'
+                        : 'Cannot reach the API at ' +
+                          (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000') +
+                          '. Make sure `cd server && npm run dev` is running (port 3000 must be free).')}
               </p>
-              <button
-                onClick={onClose}
-                className="bg-blue-600 text-black px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Close
-              </button>
+              <p className="text-gray-500 mb-4 text-xs">
+                After editing server/.env, stop the server (Ctrl+C) and run npm run dev again.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => checkAIService()}
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={onClose}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

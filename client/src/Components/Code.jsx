@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Navbar from "./Navbar";
+import { executeCode } from "../services/codeExecution";
 
 const Code = () => {
   const [language, setLanguage] = useState("python");
@@ -13,19 +14,8 @@ const Code = () => {
     setOutput("");
 
     try {
-      const response = await fetch("https://emkc.org/api/v2/piston/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          language,
-          version: "*",
-          files: [{ name: "main", content: code }],
-          stdin: input,
-        }),
-      });
-
-      const data = await response.json();
-      setOutput(data.run.output || data.run.stderr || "No output");
+      const result = await executeCode({ language, code, stdin: input });
+      setOutput(result.output || "No output");
     } catch (error) {
       setOutput("Error: " + error.message);
     } finally {

@@ -124,7 +124,11 @@ const Dashboard = () => {
             return;
         }
         const roomId = Math.floor(100000 + Math.random() * 900000);
-        navigate(`/test/${roomId}/${encodeURIComponent(prompt)}`);
+        const params = new URLSearchParams({
+            prompt,
+            role: "interviewer",
+        });
+        navigate(`/test/${roomId}?${params.toString()}`);
         setPromptSaved({ type: "success", text: "Prompt saved. Interview ready to run." });
     };
 

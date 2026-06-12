@@ -49,7 +49,7 @@ const IconPlus = (
 /* ---------- Main component ---------- */
 const InterviewDashboard = ({
   currentUser = null,    // { id: string, email?: string } - provided by parent/auth context
-  apiBase = "http://localhost:3000/interview-create",      // base path for backend; will call `${apiBase}/interviews` etc.
+  apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",      // base path for backend; will call `${apiBase}/interviews` etc.
   fetchInitial = false   // if true, fetch initial interviewers and interviewSpaces
 }) => {
   const navigate = useNavigate();
@@ -97,8 +97,8 @@ const InterviewDashboard = ({
     const load = async () => {
       try {
         const [usersRes, interviewsRes] = await Promise.all([
-          instance.get("/users").catch(() => ({ data: [] })),       // optional endpoint
-          instance.get("/interviews").catch(() => ({ data: [] }))   // optional endpoint
+          instance.get("/interview-create/users").catch(() => ({ data: [] })),       // optional endpoint
+          instance.get("/interview-create/interviews").catch(() => ({ data: [] }))   // optional endpoint
         ]);
 
         if (canceled) return;
@@ -223,7 +223,7 @@ const InterviewDashboard = ({
       };
 
       const instance = axios.create({ baseURL: apiBase, timeout: 120_000 });
-      const response = await instance.post("/interviews", payload);
+      const response = await instance.post("/interview-create", payload);
 
       // server expected to return { success: true, interviewSpace } or created document
       const data = response.data;

@@ -6,7 +6,7 @@ import UserContext from "./context/UserContext";
 
 import CodeEditor from "./components/CodeEditor";
 import LandingPage from "./components/LandingPage";
-import InterviewDashboard from "./components/InterviewDashboard";
+import InterviewDashboard from "./Components/InterviewDashboard";
 import Board from "./components/Board";
 import InterviewRoom from "./components/InterviewRoom";
 import Editor from "./components/Editor";
@@ -27,6 +27,7 @@ function App() {
   return (
     <Routes>
 
+      <Route path="/test/:roomId" element={<CodeEditor />} />
       <Route path="/test/:roomId/:initialPrompt" element={<CodeEditor />} />
 
       {!user && (
@@ -34,13 +35,13 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="*" element={<Navigate to="/" />} />
-          <Route path="/room/:roomId" element={<InterviewRoom/>} />
+          <Route path="/room/:roomId" element={<InterviewRoom />} />
 
-          <Route path="/wb" element={<Board/>} />
+          <Route path="/wb" element={<Board />} />
           <Route path="/code" element={<Auth />} />
           {/* <Route path="/interview/" element={<InterviewRoom/>} /> */}
-          <Route path="/editor/" element={<Editor/>} />
-          
+          <Route path="/editor/" element={<Editor />} />
+
           <Route path="/interview" element={<InterviewRoom />} />
 
 
@@ -54,8 +55,19 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/room/:roomId" element={<InterviewRoom />} />
           <Route path="/editor/" element={<Editor />} />
-          <Route path="/interview-dashboard" element={<InterviewDashboard />} />
-          
+          <Route
+            path="/interview-dashboard"
+            element={
+              <InterviewDashboard
+                currentUser={{
+                  id: user.uid,
+                  email: user.email,
+                  name: user.name,
+                }}
+              />
+            }
+          />
+
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </>
       )}

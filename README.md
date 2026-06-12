@@ -1,12 +1,12 @@
-# 🚀 CodeCollab-**Real-time Collaborative Code Editor with AI Assistance**
+# 🚀 CodeCollab — Real-time Collaborative Code Editor with AI Assistance
 
-CodeCollab is a powerful web-based tool that enables developers, interviewers, and teams to collaborate on code in real-time. Featuring live code sharing, AI-powered assistance, chat, whiteboarding, and instant execution, it's your complete coding collaboration solution — no sign-up required.
+CodeCollab is a web-based tool that enables developers, interviewers, and teams to collaborate on code in real-time. Featuring live code sharing, AI-powered assistance, chat, whiteboarding, and instant execution.
 
 ---
 
 ## 📸 CodeCollab Preview
 
-<img src="https://raw.githubusercontent.com/AdityaGowda23/CodeCollab-AI/main/client/public/Screenshot%202025-08-09%20000318.png" width="45%" style="margin-right: 10px;" />
+<img src="https://raw.githubusercontent.com/AdityaGowda23/CodeCollab-AI/main/client/public/Screenshot%202025-08-09%20000318.png" width="45%" />
 <img src="https://raw.githubusercontent.com/AdityaGowda23/CodeCollab-AI/main/client/public/Screenshot%202025-08-09%20000339.png" width="45%" />
 
 ---
@@ -20,166 +20,163 @@ CodeCollab is a powerful web-based tool that enables developers, interviewers, a
 
 ### 🤖 AI Coding Copilot
 - Powered by **GitHub Models API** and **Google Gemini**.
-- Context-aware suggestions:
-  - 📊 Code Analysis & Complexity
-  - 🐞 Debugging & Error Fixes
-  - 🚀 Performance Optimization
-  - ✍️ Auto-Completion & Code Generation
-  - 📘 Step-by-Step Explanations
+- Context-aware suggestions: Analyze, Debug, Optimize, Complete, Explain.
 
 ### 🧠 Whiteboard Integration
-- Collaborative drawing canvas.
-- AI support to interpret and explain diagrams.
+- Collaborative drawing canvas with **tldraw**.
 
 ### ⚙️ Code Execution Engine
-- ✅ JavaScript runs directly in-browser (JS sandbox).
-- 🔧 Python, Java, and C++ run via **Piston API**.
+- JavaScript runs in-browser; Python, Java, and C++ via **Piston API**.
 
 ### 🔗 Shareable Room Links
 - One-click room creation with public URLs.
-- Join with a single link — **no account needed**.
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture
 
-**Frontend**
-- React + Vite
-- Monaco Editor
-- Framer Motion
-- Liveblocks (presence & events)
-- React Hot Toast
+The app runs as **three separate processes**:
 
-**Backend**
-- Node.js + Express
-- GitHub Models API Proxy
-- WebSocket Signaling for WebRTC
+| Service | Folder | Port | Purpose |
+|---------|--------|------|---------|
+| **API server** | `server/` | 3000 | REST API, AI proxy, users, interviews |
+| **Socket server** | `server2.js/` | 5000 | Chat, WebRTC signaling (Socket.IO) |
+| **Frontend** | `client/` | 5173 | React + Vite UI |
 
-**Collaboration Stack**
-- Yjs + WebRTC (peer-to-peer code sync)
-- Liveblocks for presence & awareness
-
-**AI Services**
-- GPT-4.1, DeepSeek-V3-0324, Llama 4 Scout (via GitHub Models API)
-- Google Gemini (structured AI insights)
-
-**Execution Engines**
-- JavaScript Sandbox (client-side)
-- Piston API for Python, Java, and C++
+**Stack:** React, Monaco, Yjs, Liveblocks, Express, Socket.IO, GitHub Models API, Firebase Auth, MongoDB.
 
 ---
 
 ## ⚙️ Installation
 
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18 or newer
+- npm (included with Node.js)
+
+### 1. Clone the repository
+
 ```bash
-# Clone the repository
 git clone https://github.com/AdityaGowda23/CodeCollab-AI.git
 cd CodeCollab-AI
-````
-
-### Install Dependencies
-
-```bash
-# Server
-cd server
-npm install
-
-# Client
-cd ../client
-npm install
 ```
 
-### Configure Environment Variables
+### 2. Install dependencies
+
+```bash
+cd server && npm install
+cd ../client && npm install
+cd ../server2.js && npm install
+```
+
+### 3. Configure environment variables
+
+Copy the example files and edit them:
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+**`server/.env`**
 
 ```env
-# server/.env
 GITHUB_TOKEN=ghp_your_github_token
 AI_ENABLED=true
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>
+```
 
-# client/.env
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GITHUB_TOKEN` | For AI | GitHub token with Models API access |
+| `AI_ENABLED` | No | Set to `true` to enable the AI copilot |
+| `PISTON_API_KEY` | For Python/Java/C++ | Bearer token for public Piston API (whitelist since Feb 2026) |
+| `PISTON_API_URL` | No | Piston execute URL (default: emkc.org; self-host: `http://localhost:2000/api/v2/execute`) |
+| `MONGODB_URI` | For auth/interviews | MongoDB Atlas connection string |
+| `PORT` | No | API port (default `3000`) |
+
+**`client/.env`**
+
+```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-### Run the Application
+> Firebase and Liveblocks keys are already configured in the client source for local development.
+
+### 4. Run the application
+
+Open **three terminals** from the project root:
 
 ```bash
-# Start backend
+# Terminal 1 — API server (port 3000)
 cd server
 npm run dev
 
-# Start frontend (in a separate terminal)
-cd ../client
+# Terminal 2 — Socket server (port 5000)
+cd server2.js
+npm run dev
+
+# Terminal 3 — Frontend (port 5173)
+cd client
 npm run dev
 ```
 
-Open your browser at: [http://localhost:5173](http://localhost:5173) 🎉
+Production-style start (no file watching):
+
+```bash
+cd server && npm start
+cd server2.js && npm start
+cd client && npm run dev
+```
+
+### 5. Open the app
+
+Visit **[http://localhost:5173](http://localhost:5173)**
+
+### Health checks
+
+| Service | URL |
+|---------|-----|
+| API | http://localhost:3000/api/ai/health |
+| Socket | http://localhost:5000/health |
+| Client | http://localhost:5173 |
 
 ---
 
 ## 💡 Usage Guide
 
-1. **Create or Join Room**
+1. **Create or join a room** — Use “Create New Room” or open `/room/:roomId`.
+2. **Collaborate** — Edit code, chat, and use the whiteboard with your team.
+3. **AI copilot** — Click the 🤖 button (requires `GITHUB_TOKEN` + `AI_ENABLED=true` in `server/.env`, then **restart** the server).
+4. **Run code** — JavaScript runs in the browser; other languages use the server Piston proxy (`PISTON_API_KEY` or a self-hosted Piston instance).
+5. **Share** — Copy the room URL to invite others.
 
-   * Click on **“Create New Room”** or enter a room ID to join.
+### Useful routes
 
-2. **Collaborate in Real-Time**
-
-   * Edit code, chat, and whiteboard with your team.
-
-3. **Invoke AI Copilot**
-
-   * Click the floating 🤖 **AI** button.
-   * Choose from: Analyze | Debug | Optimize | Complete | Explain
-
-4. **Share Room**
-
-   * Click **“Share”** to copy the room URL and invite others.
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/auth` | Firebase login |
+| `/editor/` | Collaborative editor |
+| `/room/:roomId` | Interview room (chat + video) |
+| `/dashboard` | User dashboard (logged in) |
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions!
-
 ```bash
-# Steps to contribute:
-1. Fork the repository
-2. Create your feature branch:
-   git checkout -b feature/awesome-feature
-3. Commit your changes:
-   git commit -m 'Add awesome feature'
-4. Push to the branch:
-   git push origin feature/awesome-feature
-5. Open a Pull Request
+git checkout -b feature/your-feature
+# make changes, commit, push
+gh pr create
 ```
-
-Please follow our **Code of Conduct** and ensure all tests pass.
 
 ---
 
 ## 🧾 License
 
-This project is licensed under the **MIT License**.
-See [LICENSE](LICENSE) for more information.
-
----
-
-## 📬 Contact
-
-If you have any questions, ideas, or feedback, feel free to open an issue or reach out to the maintainer.
+MIT License — see [LICENSE](LICENSE).
 
 ---
 
 > Built with ❤️ for developers, by developers.
-
-```
-
----
-
-### 📌 Notes:
-- These images are now **left-aligned** and not centered.
-- Markdown doesn't support `style="margin"` or `float:left;` reliably across GitHub, so this is as close as possible.
-- If you want them stacked vertically, just reduce the `width` or remove one image per line.
-
-Let me know if you want a vertically stacked layout or a layout with captions under each screenshot!
-```

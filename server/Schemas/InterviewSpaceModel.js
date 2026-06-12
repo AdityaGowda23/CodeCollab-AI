@@ -22,16 +22,14 @@ const DSASubmissionSchema = new Schema(
 const InterviewSpaceSchema = new Schema(
   {
     
-    ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    // Firebase UID strings — must match UserModel._id (String), not ObjectId
+    ownerId: { type: String, ref: "User", required: true, index: true },
 
-    
     invitedInterviewers: [
       {
-        userId: { type: Schema.Types.ObjectId, ref: "User" },//this will come from DB 
-        email:{
-          type:String
-        }
-      }
+        userId: { type: String, ref: "User" },
+        email: { type: String },
+      },
     ],
 
 
@@ -42,10 +40,9 @@ const InterviewSpaceSchema = new Schema(
 
 
 
-    candidateId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    candidateEmail: {//this will come from DB
-      type: String
-    },
+    // Optional until the candidate signs up; candidateEmail identifies them for now
+    candidateId: { type: String, ref: "User", index: true },
+    candidateEmail: { type: String },
 
 
 

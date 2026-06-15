@@ -16,7 +16,7 @@ export default function InterviewRoom() {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get('userId');
   const userRole = searchParams.get('role');
-  const socket = useSocket('http://localhost:5000');
+  const socket = useSocket();
 
   
   const [participants, setParticipants] = useState([]);

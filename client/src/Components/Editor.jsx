@@ -680,7 +680,7 @@ export default function EditorWrapper() {
   const [currentLanguage, setCurrentLanguage] = useState('javascript');
   const [problemStatement, setProblemStatement] = useState('');
 
-  const socket = useSocket('http://localhost:5000');
+  const socket = useSocket();
 
   // Get room ID from URL if exists
   useEffect(() => {
